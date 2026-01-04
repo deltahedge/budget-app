@@ -334,17 +334,7 @@ const saveRemoteState = async (state) => {
             }
           };
 
-          const [entries, setEntries] = useState(() => {
-            try {
-              const saved = localStorage.getItem('budgetApp_entries');
-              if (saved) {
-                return JSON.parse(saved);
-              }
-            } catch (e) {
-              console.error('Error loading entries from localStorage:', e);
-            }
-            return defaultEntries;
-          });
+          const [entries, setEntries] = useState(defaultEntries);
 
           const [nextId, setNextId] = useState(() => {
             try {
@@ -384,23 +374,24 @@ const saveRemoteState = async (state) => {
             }
           }, [budget]);
 
-          // Save entries to localStorage whenever they change
-          useEffect(() => {
-            try {
-              localStorage.setItem('budgetApp_entries', JSON.stringify(entries));
-            } catch (error) {
-              console.error('Error saving entries to localStorage:', error);
-            }
-          }, [entries]);
+         // Save nextId to localStorage whenever it changes
+useEffect(() => {
+  try {
+    localStorage.setItem('budgetApp_nextId', nextId.toString());
+  } catch (error) {
+    console.error('Error saving nextId to localStorage:', error);
+  }
+}, [nextId]);
+useEffect(() => {
+  const t = setTimeout(() => {
+    saveRemoteState({ budget, entries, nextId }).catch((e) =>
+      console.error("Remote save failed:", e)
+    );
+  }, 600);
 
-          // Save nextId to localStorage whenever it changes
-          useEffect(() => {
-            try {
-              localStorage.setItem('budgetApp_nextId', nextId.toString());
-            } catch (error) {
-              console.error('Error saving nextId to localStorage:', error);
-            }
-          }, [nextId]);
+  return () => clearTimeout(t);
+}, [budget, entries, nextId]);
+
 
           const calculateTotals = useMemo(() => {
             let totalIncomeBudget = (budget.income.income1 + budget.income.income2) * 12;
