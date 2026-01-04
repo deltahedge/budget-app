@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Budget Tracker</title>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+        
+        const TrendingUp = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+        );
+        
+        const TrendingDown = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                <polyline points="17 18 23 18 23 12"></polyline>
+            </svg>
+        );
+        
+        const DollarSign = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+        );
+        
+        const AlertCircle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        );
+        
+        const Calendar = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+        );
+
+        const Plus = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        );
+
+        const X = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        );
+
+        const Edit = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+        );
+
+        const formatCurrency = (amount) => {
+          return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          }).format(amount);
+        };
+
+        const EditableBudget = ({ value, onUpdate, type, category, field, label, compact = false }) => {
+          const [isEditing, setIsEditing] = useState(false);
+          const [editValue, setEditValue] = useState(value);
+
+          React.useEffect(() => {
+            setEditValue(value);
+          }, [value]);
+
+          const handleSave = () => {
+            onUpdate(type, category, field, editValue);
+            setIsEditing(false);
+          };
+
+          const handleCancel = () => {
+            setEditValue(value);
+            setIsEditing(false);
+          };
+
+          if (isEditing) {
+            return (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={handleSave}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSave();
+                    if (e.key === 'Escape') handleCancel();
+                  }}
+                  className={`${compact ? 'text-xs px-1 py-0.5' : 'px-2 py-1'} border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                  autoFocus
+                />
+                <button
+                  onClick={handleSave}
+                  className="text-green-600 hover:text-green-800"
+                  title="Save"
+                >
+                  ✓
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="text-red-600 hover:text-red-800"
+                  title="Cancel"
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-center gap-1 group">
+              <span className={compact ? 'text-xs' : ''}>{formatCurrency(value)}</span>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 transition-opacity"
+                title="Edit budget"
+              >
+                <Edit />
+              </button>
+            </div>
+          );
+        };
+
+        const EntryForm = ({ onAdd, placeholder, compact = false }) => {
+          const [amount, setAmount] = useState('');
+          const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+          const [description, setDescription] = useState('');
+          const [showForm, setShowForm] = useState(false);
+
+          const handleSubmit = (e) => {
+            e.preventDefault();
+            if (amount && parseFloat(amount) > 0) {
+              onAdd(amount, date, description);
+              setAmount('');
+              setDescription('');
+              if (compact) setShowForm(false);
+            }
+          };
+
+          if (compact) {
+            if (!showForm) {
+              return (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="w-full text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1 py-1 border border-blue-200 rounded hover:bg-blue-50"
+                >
+                  <Plus />
+                  Add Entry
+                </button>
+              );
+            }
+            return (
+              <form onSubmit={handleSubmit} className="space-y-1">
+                <input
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Amount"
+                  className="w-full text-xs border rounded px-2 py-1"
+                  required
+                />
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full text-xs border rounded px-2 py-1"
+                  required
+                />
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                  className="w-full text-xs border rounded px-2 py-1"
+                />
+                <div className="flex gap-1">
+                  <button
+                    type="submit"
+                    className="flex-1 text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForm(false);
+                      setAmount('');
+                      setDescription('');
+                    }}
+                    className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            );
+          }
+
+          return (
+            <form onSubmit={handleSubmit} className="space-y-2 border-t pt-3">
+              <input
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Amount"
+                className="w-full border rounded px-3 py-2"
+                required
+              />
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                required
+              />
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Description (optional)"
+                className="w-full border rounded px-3 py-2"
+              />
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2"
+              >
+                <Plus />
+                Add Entry
+              </button>
+            </form>
+          );
+        };
+
+        const BudgetApp = () => {
+          const defaultBudget = {
+            income: { income1: 7409, income2: 5759 },
+            expenses: {
+              housing: { mortgage: 1267, phone: 128, electricity: 110, gas: 49, water: 83, cable: 25, maintenance: 599, pest: 67, hoa: 131 },
+              transportation: { insurance: 9, licensing: 14, fuel: 148, maintenance: 93 },
+              insurance: { home: 18, life: 58, auto: 117 },
+              food: { groceries: 1481, dining: 82 },
+              personalCare: { medical: 277, hairNails: 125, clothing: 114, dryCleaning: 17, healthClub: 48, orgDues: 45, other: 9 },
+              pets: { medical: 37, other: 10 },
+              entertainment: { vacation: 127, movies: 35, concerts: 15, sporting: 94, netflix: 53, books: 89, juicePlus: 25, other: 17 },
+              taxes: { federal: 1038 },
+              savings: { retirement: 583, investment: 600, subscriptions: 62 },
+              gifts: { charity1: 102, charity2: 11, gifts: 217 }
+            }
+          };
+
+          const [budget, setBudget] = useState(() => {
+            try {
+              const saved = localStorage.getItem('budgetApp_budget');
+              if (saved) {
+                return JSON.parse(saved);
+              }
+            } catch (e) {
+              console.error('Error loading budget from localStorage:', e);
+            }
+            return defaultBudget;
+          });
+
+          const updateBudget = (type, category, field, value) => {
+            setBudget(prev => {
+              const newBudget = { ...prev };
+              if (type === 'income') {
+                newBudget.income[field] = parseFloat(value) || 0;
+              } else {
+                newBudget.expenses[category][field] = parseFloat(value) || 0;
+              }
+              return newBudget;
+            });
+          };
+
+          // Initialize entries as arrays - each entry has { id, amount, date, description }
+          const defaultEntries = {
+            income: { income1: [], income2: [] },
+            expenses: {
+              housing: { mortgage: [], phone: [], electricity: [], gas: [], water: [], cable: [], maintenance: [], pest: [], hoa: [] },
+              transportation: { insurance: [], licensing: [], fuel: [], maintenance: [] },
+              insurance: { home: [], life: [], auto: [] },
+              food: { groceries: [], dining: [] },
+              personalCare: { medical: [], hairNails: [], clothing: [], dryCleaning: [], healthClub: [], orgDues: [], other: [] },
+              pets: { medical: [], other: [] },
+              entertainment: { vacation: [], movies: [], concerts: [], sporting: [], netflix: [], books: [], juicePlus: [], other: [] },
+              taxes: { federal: [] },
+              savings: { retirement: [], investment: [], subscriptions: [] },
+              gifts: { charity1: [], charity2: [], gifts: [] }
+            }
+          };
+
+          const [entries, setEntries] = useState(() => {
+            try {
+              const saved = localStorage.getItem('budgetApp_entries');
+              if (saved) {
+                return JSON.parse(saved);
+              }
+            } catch (e) {
+              console.error('Error loading entries from localStorage:', e);
+            }
+            return defaultEntries;
+          });
+
+          const [nextId, setNextId] = useState(() => {
+            try {
+              const saved = localStorage.getItem('budgetApp_nextId');
+              if (saved) {
+                return parseInt(saved) || 1;
+              }
+            } catch (e) {
+              console.error('Error loading nextId from localStorage:', e);
+            }
+            return 1;
+          });
+
+          // Ensure nextId is higher than any existing entry ID (runs once on mount)
+          useEffect(() => {
+            let maxId = 0;
+            Object.values(entries.income).forEach(arr => {
+              arr.forEach(entry => { if (entry.id > maxId) maxId = entry.id; });
+            });
+            Object.values(entries.expenses).forEach(category => {
+              Object.values(category).forEach(arr => {
+                arr.forEach(entry => { if (entry.id > maxId) maxId = entry.id; });
+              });
+            });
+            if (maxId >= nextId) {
+              setNextId(maxId + 1);
+            }
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+          }, []); // Only run once on mount to initialize nextId from loaded entries
+
+          // Save budget to localStorage whenever it changes
+          useEffect(() => {
+            try {
+              localStorage.setItem('budgetApp_budget', JSON.stringify(budget));
+            } catch (error) {
+              console.error('Error saving budget to localStorage:', error);
+            }
+          }, [budget]);
+
+          // Save entries to localStorage whenever they change
+          useEffect(() => {
+            try {
+              localStorage.setItem('budgetApp_entries', JSON.stringify(entries));
+            } catch (error) {
+              console.error('Error saving entries to localStorage:', error);
+            }
+          }, [entries]);
+
+          // Save nextId to localStorage whenever it changes
+          useEffect(() => {
+            try {
+              localStorage.setItem('budgetApp_nextId', nextId.toString());
+            } catch (error) {
+              console.error('Error saving nextId to localStorage:', error);
+            }
+          }, [nextId]);
+
+          const calculateTotals = useMemo(() => {
+            let totalIncomeBudget = (budget.income.income1 + budget.income.income2) * 12;
+            let totalIncomeActual = 0;
+            let totalExpensesBudget = 0;
+            let totalExpensesActual = 0;
+
+            // Sum all income entries
+            Object.values(entries.income).forEach(entryArray => {
+              entryArray.forEach(entry => {
+                totalIncomeActual += entry.amount || 0;
+              });
+            });
+
+            // Calculate budget totals
+            Object.keys(budget.expenses).forEach(category => {
+              Object.values(budget.expenses[category]).forEach(val => {
+                totalExpensesBudget += val * 12;
+              });
+            });
+
+            // Sum all expense entries
+            Object.keys(entries.expenses).forEach(category => {
+              Object.values(entries.expenses[category]).forEach(entryArray => {
+                entryArray.forEach(entry => {
+                  totalExpensesActual += entry.amount || 0;
+                });
+              });
+            });
+
+            return {
+              incomeBudget: totalIncomeBudget,
+              incomeActual: totalIncomeActual,
+              expensesBudget: totalExpensesBudget,
+              expensesActual: totalExpensesActual,
+              surplusBudget: totalIncomeBudget - totalExpensesBudget,
+              surplusActual: totalIncomeActual - totalExpensesActual
+            };
+          }, [entries]);
+
+          const categoryTotals = useMemo(() => {
+            const totals = {};
+            Object.keys(budget.expenses).forEach(category => {
+              let budgetTotal = 0;
+              let actualTotal = 0;
+              Object.values(budget.expenses[category]).forEach(val => {
+                budgetTotal += val * 12;
+              });
+              // Sum all entries in this category
+              Object.values(entries.expenses[category]).forEach(entryArray => {
+                entryArray.forEach(entry => {
+                  actualTotal += entry.amount || 0;
+                });
+              });
+              const variance = actualTotal - budgetTotal;
+              const variancePct = budgetTotal > 0 ? (variance / budgetTotal) * 100 : 0;
+              totals[category] = { budget: budgetTotal, actual: actualTotal, variance, variancePct };
+            });
+            return totals;
+          }, [entries]);
+
+          const alerts = useMemo(() => {
+            const red = [], yellow = [], green = [];
+            Object.entries(categoryTotals).forEach(([category, data]) => {
+              if (data.variancePct > 20) red.push({ category, ...data });
+              else if (data.variancePct > 10) yellow.push({ category, ...data });
+              else if (data.variancePct < -10) green.push({ category, ...data });
+            });
+            return { red, yellow, green };
+          }, [categoryTotals]);
+
+          const formatDate = (dateString) => {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          };
+
+          const addEntry = (type, category, field, amount, date, description = '') => {
+            const newEntry = {
+              id: nextId,
+              amount: parseFloat(amount) || 0,
+              date: date || new Date().toISOString().split('T')[0],
+              description: description
+            };
+            setNextId(prev => prev + 1);
+            setEntries(prev => {
+              const newEntries = { ...prev };
+              if (type === 'income') {
+                newEntries.income[field] = [...newEntries.income[field], newEntry];
+              } else {
+                newEntries.expenses[category][field] = [...newEntries.expenses[category][field], newEntry];
+              }
+              return newEntries;
+            });
+          };
+
+          const removeEntry = (type, category, field, entryId) => {
+            setEntries(prev => {
+              const newEntries = { ...prev };
+              if (type === 'income') {
+                newEntries.income[field] = newEntries.income[field].filter(e => e.id !== entryId);
+              } else {
+                newEntries.expenses[category][field] = newEntries.expenses[category][field].filter(e => e.id !== entryId);
+              }
+              return newEntries;
+            });
+          };
+
+          const getTotalForField = (type, category, field) => {
+            let entryArray = [];
+            if (type === 'income') {
+              entryArray = entries.income[field] || [];
+            } else {
+              entryArray = entries.expenses[category][field] || [];
+            }
+            return entryArray.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+          };
+
+          const categoryLabels = {
+            housing: 'Housing', transportation: 'Transportation', insurance: 'Insurance',
+            food: 'Food', personalCare: 'Personal Care', pets: 'Pets',
+            entertainment: 'Entertainment', taxes: 'Taxes',
+            savings: 'Savings & Investments', gifts: 'Gifts & Donations'
+          };
+
+          return (
+            <div className="min-h-screen bg-gray-50 p-4">
+              <div className="max-w-7xl mx-auto">
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">2026 Budget Tracker</h1>
+                  <p className="text-gray-600">Smart budget management based on your 2025 actuals</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-600">Total Income YTD</h3>
+                      <TrendingUp />
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">{formatCurrency(calculateTotals.incomeActual)}</p>
+                    <p className="text-sm text-gray-500">Budget: {formatCurrency(calculateTotals.incomeBudget)}</p>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-600">Total Expenses YTD</h3>
+                      <TrendingDown />
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">{formatCurrency(calculateTotals.expensesActual)}</p>
+                    <p className="text-sm text-gray-500">Budget: {formatCurrency(calculateTotals.expensesBudget)}</p>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-600">Net Surplus YTD</h3>
+                      <DollarSign />
+                    </div>
+                    <p className="text-2xl font-bold text-gray-800">{formatCurrency(calculateTotals.surplusActual)}</p>
+                    <p className="text-sm text-gray-500">Budget: {formatCurrency(calculateTotals.surplusBudget)}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Budget Settings</h2>
+                  
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-700 mb-3 text-lg">Monthly Income Goals</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.entries(budget.income).map(([field, budgetAmount]) => (
+                        <div key={field} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                          <label className="font-medium text-gray-700 capitalize">
+                            {field.replace(/([A-Z])/g, ' $1').trim()}:
+                          </label>
+                          <EditableBudget 
+                            value={budgetAmount} 
+                            onUpdate={updateBudget}
+                            type="income"
+                            category={null}
+                            field={field}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {Object.entries(budget.expenses).map(([category, fields]) => (
+                    <div key={category} className="mb-6">
+                      <h3 className="font-semibold text-gray-700 mb-3 text-lg capitalize">{categoryLabels[category]}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {Object.entries(fields).map(([field, budgetAmount]) => (
+                          <div key={field} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                            <label className="font-medium text-gray-700 capitalize text-xs">
+                              {field.replace(/([A-Z])/g, ' $1').trim()}:
+                            </label>
+                            <EditableBudget 
+                              value={budgetAmount} 
+                              onUpdate={updateBudget}
+                              type="expense"
+                              category={category}
+                              field={field}
+                              compact={true}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {(alerts.red.length > 0 || alerts.yellow.length > 0 || alerts.green.length > 0) && (
+                  <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <AlertCircle />
+                      Budget Alerts
+                    </h2>
+                    
+                    {alerts.red.length > 0 && (
+                      <div className="mb-4">
+                        <h3 className="text-red-600 font-semibold mb-2">🔴 Over Budget (20%+)</h3>
+                        <div className="space-y-2">
+                          {alerts.red.map(item => (
+                            <div key={item.category} className="bg-red-50 p-3 rounded flex justify-between items-center">
+                              <span className="font-medium">{categoryLabels[item.category]}</span>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Over by {formatCurrency(item.variance)}</div>
+                                <div className="text-red-600 font-semibold">{item.variancePct.toFixed(1)}%</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {alerts.yellow.length > 0 && (
+                      <div className="mb-4">
+                        <h3 className="text-yellow-600 font-semibold mb-2">🟡 Watch List (10-20% over)</h3>
+                        <div className="space-y-2">
+                          {alerts.yellow.map(item => (
+                            <div key={item.category} className="bg-yellow-50 p-3 rounded flex justify-between items-center">
+                              <span className="font-medium">{categoryLabels[item.category]}</span>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Over by {formatCurrency(item.variance)}</div>
+                                <div className="text-yellow-600 font-semibold">{item.variancePct.toFixed(1)}%</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {alerts.green.length > 0 && (
+                      <div>
+                        <h3 className="text-green-600 font-semibold mb-2">🟢 Under Budget (savings!)</h3>
+                        <div className="space-y-2">
+                          {alerts.green.map(item => (
+                            <div key={item.category} className="bg-green-50 p-3 rounded flex justify-between items-center">
+                              <span className="font-medium">{categoryLabels[item.category]}</span>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Under by {formatCurrency(Math.abs(item.variance))}</div>
+                                <div className="text-green-600 font-semibold">{Math.abs(item.variancePct).toFixed(1)}%</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <Calendar />
+                    Add Transactions
+                  </h2>
+
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-700 mb-3 text-lg">Income</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {Object.entries(budget.income).map(([field, budgetAmount]) => {
+                        const fieldEntries = entries.income[field] || [];
+                        const fieldTotal = getTotalForField('income', null, field);
+                        return (
+                          <div key={field} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-center mb-3">
+                              <h4 className="font-semibold text-gray-700 capitalize">
+                                {field.replace(/([A-Z])/g, ' $1').trim()}
+                              </h4>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-500 flex items-center gap-1 justify-end">
+                                  Budget: <EditableBudget 
+                                    value={budgetAmount} 
+                                    onUpdate={updateBudget}
+                                    type="income"
+                                    category={null}
+                                    field={field}
+                                    compact={true}
+                                  />/mo
+                                </div>
+                                <div className="text-lg font-bold text-gray-800">Total: {formatCurrency(fieldTotal)}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2 mb-3">
+                              {[...fieldEntries].sort((a, b) => new Date(b.date) - new Date(a.date)).map(entry => (
+                                <div key={entry.id} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
+                                  <div className="flex-1">
+                                    <div className="font-medium">{formatCurrency(entry.amount)}</div>
+                                    <div className="text-xs text-gray-500">
+                                      {formatDate(entry.date)}
+                                      {entry.description && ` • ${entry.description}`}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => removeEntry('income', null, field, entry.id)}
+                                    className="text-red-500 hover:text-red-700 ml-2"
+                                    title="Delete entry"
+                                  >
+                                    <X />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            <EntryForm
+                              onAdd={(amount, date, description) => addEntry('income', null, field, amount, date, description)}
+                              placeholder={`Add ${field.replace(/([A-Z])/g, ' $1').trim()} entry`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {Object.entries(budget.expenses).map(([category, fields]) => (
+                    <div key={category} className="mb-6">
+                      <h3 className="font-semibold text-gray-700 mb-3 text-lg capitalize">{categoryLabels[category]}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.entries(fields).map(([field, budgetAmount]) => {
+                          const fieldEntries = entries.expenses[category][field] || [];
+                          const fieldTotal = getTotalForField('expense', category, field);
+                          const monthlyBudget = budgetAmount;
+                          const ytdBudget = monthlyBudget * 12;
+                          return (
+                            <div key={field} className="border rounded-lg p-4">
+                              <div className="mb-3">
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="font-semibold text-gray-700 text-sm capitalize">
+                                    {field.replace(/([A-Z])/g, ' $1').trim()}
+                                  </h4>
+                                </div>
+                                <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                  Budget: <EditableBudget 
+                                    value={monthlyBudget} 
+                                    onUpdate={updateBudget}
+                                    type="expense"
+                                    category={category}
+                                    field={field}
+                                    compact={true}
+                                  />/mo ({formatCurrency(ytdBudget)}/yr)
+                                </div>
+                                <div className="text-sm font-bold text-gray-800">
+                                  Total: {formatCurrency(fieldTotal)}
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-1 mb-2 max-h-32 overflow-y-auto">
+                                {[...fieldEntries].sort((a, b) => new Date(b.date) - new Date(a.date)).map(entry => (
+                                  <div key={entry.id} className="flex items-center justify-between bg-gray-50 p-1.5 rounded text-xs">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium truncate">{formatCurrency(entry.amount)}</div>
+                                      <div className="text-xs text-gray-500 truncate">
+                                        {formatDate(entry.date)}
+                                        {entry.description && ` • ${entry.description}`}
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => removeEntry('expense', category, field, entry.id)}
+                                      className="text-red-500 hover:text-red-700 ml-1 flex-shrink-0"
+                                      title="Delete entry"
+                                    >
+                                      <X />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <EntryForm
+                                onAdd={(amount, date, description) => addEntry('expense', category, field, amount, date, description)}
+                                placeholder={`Add ${field.replace(/([A-Z])/g, ' $1').trim()}`}
+                                compact={true}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4">Category Performance (YTD)</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Category</th>
+                          <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Budget YTD</th>
+                          <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Actual YTD</th>
+                          <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Variance</th>
+                          <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Variance %</th>
+                          <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {Object.entries(categoryTotals).map(([category, data]) => (
+                          <tr key={category} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-800">{categoryLabels[category]}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-600">{formatCurrency(data.budget)}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-800 font-medium">{formatCurrency(data.actual)}</td>
+                            <td className={`px-4 py-3 text-sm text-right font-medium ${data.variance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {formatCurrency(data.variance)}
+                            </td>
+                            <td className={`px-4 py-3 text-sm text-right font-medium ${data.variance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {data.variancePct.toFixed(1)}%
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {data.variancePct > 20 ? (
+                                <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">🔴 Over 20%</span>
+                              ) : data.variancePct > 10 ? (
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold">🟡 Over 10%</span>
+                              ) : data.variancePct < -10 ? (
+                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">🟢 Under</span>
+                              ) : (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold">✓ On Track</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        ReactDOM.render(<BudgetApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
