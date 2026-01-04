@@ -293,17 +293,7 @@ const saveRemoteState = async (state) => {
             }
           };
 
-          const [budget, setBudget] = useState(() => {
-            try {
-              const saved = localStorage.getItem('budgetApp_budget');
-              if (saved) {
-                return JSON.parse(saved);
-              }
-            } catch (e) {
-              console.error('Error loading budget from localStorage:', e);
-            }
-            return defaultBudget;
-          });
+          const [budget, setBudget] = useState(defaultBudget);
 
           const updateBudget = (type, category, field, value) => {
             setBudget(prev => {
@@ -364,15 +354,6 @@ const saveRemoteState = async (state) => {
             }
             // eslint-disable-next-line react-hooks/exhaustive-deps
           }, []); // Only run once on mount to initialize nextId from loaded entries
-
-          // Save budget to localStorage whenever it changes
-          useEffect(() => {
-            try {
-              localStorage.setItem('budgetApp_budget', JSON.stringify(budget));
-            } catch (error) {
-              console.error('Error saving budget to localStorage:', error);
-            }
-          }, [budget]);
 
          // Save nextId to localStorage whenever it changes
 useEffect(() => {
