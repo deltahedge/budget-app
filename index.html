@@ -326,17 +326,7 @@ const saveRemoteState = async (state) => {
 
           const [entries, setEntries] = useState(defaultEntries);
 
-          const [nextId, setNextId] = useState(() => {
-            try {
-              const saved = localStorage.getItem('budgetApp_nextId');
-              if (saved) {
-                return parseInt(saved) || 1;
-              }
-            } catch (e) {
-              console.error('Error loading nextId from localStorage:', e);
-            }
-            return 1;
-          });
+          const [nextId, setNextId] = useState(1);
 
           // Ensure nextId is higher than any existing entry ID (runs once on mount)
           useEffect(() => {
@@ -355,14 +345,6 @@ const saveRemoteState = async (state) => {
             // eslint-disable-next-line react-hooks/exhaustive-deps
           }, []); // Only run once on mount to initialize nextId from loaded entries
 
-         // Save nextId to localStorage whenever it changes
-useEffect(() => {
-  try {
-    localStorage.setItem('budgetApp_nextId', nextId.toString());
-  } catch (error) {
-    console.error('Error saving nextId to localStorage:', error);
-  }
-}, [nextId]);
 useEffect(() => {
   const t = setTimeout(() => {
     saveRemoteState({ budget, entries, nextId }).catch((e) =>
