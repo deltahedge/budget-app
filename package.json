@@ -1,0 +1,7 @@
+{
+  "name": "budget-app",
+  "private": true,
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0"
+  }
+}

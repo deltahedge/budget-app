@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+const { neon } = require("@neondatabase/serverless");
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -9,12 +9,12 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body)
 });
 
-export async function handler(event) {
+exports.handler = async (event) => {
   const dbUrl = process.env.NETLIFY_DATABASE_URL;
   if (!dbUrl) return json(500, { error: "Missing NETLIFY_DATABASE_URL" });
 
   const sql = neon(dbUrl);
-  const id = event.queryStringParameters?.id || "default";
+  const id = (event.queryStringParameters && event.queryStringParameters.id) || "default";
 
   try {
     if (event.httpMethod === "GET") {
@@ -45,4 +45,4 @@ export async function handler(event) {
   } catch (err) {
     return json(500, { error: err.message });
   }
-}
+};
