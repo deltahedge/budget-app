@@ -392,6 +392,27 @@ useEffect(() => {
   return () => clearTimeout(t);
 }, [budget, entries, nextId]);
 
+useEffect(() => {
+  let cancelled = false;
+
+  (async () => {
+    try {
+      const remote = await loadRemoteState();
+      if (cancelled) return;
+
+      if (remote && remote.budget && remote.entries && remote.nextId != null) {
+        setBudget(remote.budget);
+        setEntries(remote.entries);
+        setNextId(remote.nextId);
+      }
+    } catch (e) {
+      console.error("Remote load failed:", e);
+    }
+  })();
+
+  return () => { cancelled = true; };
+}, []);
+
 
           const calculateTotals = useMemo(() => {
             let totalIncomeBudget = (budget.income.income1 + budget.income.income2) * 12;
